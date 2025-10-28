@@ -18,9 +18,9 @@ A Python-based CLI tool that synchronizes release note text across three file ty
 
 ### Data Flow
 ```
-map.yaml (releasenote.text) 
+map.yaml (releasenote.text)
     ↓
-json (text field) 
+json (text field)
     ↓
 json (markdown field - text portion only, preserve metadata)
     ↓
@@ -173,9 +173,9 @@ Validation Results:
 ✗ INCORRECT (3 entries)
   PR #133540:
     - JSON text: MISMATCH
-    - JSON markdown: MISMATCH  
+    - JSON markdown: MISMATCH
     - MD content: MISMATCH
-    
+
   PR #132549:
     - JSON text: OK
     - JSON markdown: MISMATCH
@@ -288,13 +288,13 @@ def normalize_text(text: str) -> str:
     """Normalize text for comparison"""
     # Remove leading/trailing whitespace
     text = text.strip()
-    
+
     # Normalize multiple spaces to single space
     text = ' '.join(text.split())
-    
+
     # Keep \n escape sequences as-is for JSON
     # They represent intentional line breaks
-    
+
     return text
 
 def compare_map_to_json(map_text: str, json_text: str) -> bool:
@@ -317,13 +317,13 @@ def compare_json_to_markdown(json_text: str, markdown_field: str) -> bool:
 def update_markdown_field(old_markdown: str, new_text: str) -> str:
     """Update text portion while preserving metadata"""
     # Pattern: "old_text ([#PR_NUM](url), [@author](url)) [SIG ...]"
-    
+
     # Extract metadata (everything after first PR link)
     match = re.search(r'(\(\[#\d+\].*)', old_markdown)
     if match:
         metadata = match.group(1)
         return f"{new_text} {metadata}"
-    
+
     # Fallback: just append if pattern not found
     return f"{new_text} {old_markdown}"
 ```
@@ -332,7 +332,7 @@ def update_markdown_field(old_markdown: str, new_text: str) -> str:
 
 ### Validation Errors
 - Missing map file → Report as "Missing in maps"
-- Missing JSON entry → Report as "Missing in JSON"  
+- Missing JSON entry → Report as "Missing in JSON"
 - Missing markdown entry → Report as "Missing in MD"
 - Corrupted YAML → Skip with error message
 - Corrupted JSON → Abort with clear error

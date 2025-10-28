@@ -5,6 +5,7 @@ A simple, effective Python tool to synchronize Kubernetes release notes across Y
 ## Problem
 
 When reviewers suggest changes to release note map files during PR review, authors must manually update:
+
 1. `releases/release-x.xx/release-notes/maps/pr-XXXXX-map.yaml` (edited by reviewers)
 2. `releases/release-x.xx/release-notes/release-notes-draft.json` (needs manual sync)
 3. `releases/release-x.xx/release-notes/release-notes-draft.md` (needs manual sync)
@@ -14,10 +15,14 @@ This manual process is time-consuming and error-prone.
 ## Solution
 
 This tool automates the synchronization with two modes:
+
 - **Validate Mode**: Check consistency across all files without making changes
 - **Sync Mode**: Apply changes from map files to JSON and Markdown with interactive diffs
 
 ## Quick Start
+
+> [!Note]
+> Refer – [Quickstart.md](docs/QUICKSTART.md)
 
 ### Installation
 
@@ -50,15 +55,6 @@ python sync_tool.py sync --since-commit HEAD~1 --release 1.35
 python sync_tool.py validate --global --release 1.35
 ```
 
-## Features
-
-✅ **Smart Text Comparison**: Handles YAML multi-line strings and `\n` escape sequences correctly
-✅ **Incremental or Global**: Work on changed files only or validate entire release
-✅ **Interactive Diffs**: See exactly what will change before applying
-✅ **Safe Operations**: Never modifies files without confirmation (unless `--auto-yes`)
-✅ **Git Integration**: Automatically detects changed files since any commit
-✅ **Clear Reporting**: Table-based validation results showing exactly what's wrong
-
 ## Architecture
 
 The tool follows a simple, functional design:
@@ -82,8 +78,8 @@ Markdown file (render from JSON markdown)
 
 ## Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system design, data flow, and component specifications
-- **[IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)** - Detailed algorithms, pseudocode, flowcharts, and edge cases
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete system design, data flow, and component specifications
+- **[IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md)** - Detailed algorithms, pseudocode, flowcharts, and edge cases
 - **[README.md](README.md)** - This file - quick start and overview
 
 ## Command Reference
@@ -109,6 +105,7 @@ python sync_tool.py validate --global --release 1.35 --output csv
 ```
 
 **Output Example**:
+
 ```
 Validation Results:
 ===================
@@ -144,6 +141,7 @@ python sync_tool.py sync --since-commit HEAD~1 --release 1.35 --auto-yes
 ```
 
 **Interactive Flow**:
+
 ```
 Syncing PR #133540
 ===================
@@ -226,10 +224,12 @@ python sync_tool.py sync --prs 133540 --release 1.35
 ### Text Synchronization
 
 1. **Map → JSON text field**: Direct copy with normalization
+
    - Multi-line YAML collapsed to single line (unless explicit `\n`)
    - Whitespace normalized
 
 2. **JSON text → JSON markdown field**: Update text portion only
+
    - Extract text before `([#PR...` pattern
    - Replace with new text
    - Preserve PR link, author, and SIG metadata
@@ -241,16 +241,20 @@ python sync_tool.py sync --prs 133540 --release 1.35
 ### Newline Handling
 
 **In map file (YAML)**:
+
 ```yaml
 text: Line one
   and line two
 ```
+
 Becomes: `"Line one and line two"`
 
 **With explicit newlines**:
+
 ```yaml
 text: Line one\nLine two
 ```
+
 Stays: `"Line one\nLine two"` (rendered as line break in markdown)
 
 ## Safety Features
@@ -271,95 +275,3 @@ The tool handles common issues gracefully:
 - **Corrupted YAML**: Skips with clear error message
 - **File permission errors**: Aborts with helpful message
 - **User cancellation**: Clean exit, no partial changes
-
-## Requirements
-
-- **Python >= 3.11**
-- **[`uv`](https://github.com/astral-sh/uv)** - Fast Python package manager
-
-### Dependencies (managed by uv)
-
-- `PyYAML >= 6.0` - YAML parsing
-- `colorama >= 0.4` - Colored terminal output
-- `tabulate >= 0.9` - Table formatting
-- `GitPython >= 3.1` - Git operations (optional)
-
-These will be specified in `pyproject.toml` for `uv` to manage automatically.
-
-## File Structure
-
-```
-releases/tools/
-├── README.md                 # This file
-├── ARCHITECTURE.md           # System design and specifications
-├── IMPLEMENTATION_GUIDE.md   # Algorithms and pseudocode
-├── pyproject.toml           # Python project config (uv)
-├── uv.lock                  # Dependency lock file (auto-generated)
-├── .python-version          # Python version specification
-├── sync_tool.py             # Main CLI entry point
-├── file_loader.py           # File reading/parsing
-├── comparator.py            # Text comparison logic
-├── sync_engine.py           # Sync operations
-├── validator.py             # Validation logic
-├── git_helper.py            # Git integration
-├── formatter.py             # Output formatting
-└── constants.py             # Configuration
-```
-
-## Development Status
-
-**Current**: Architecture and design phase complete ✅
-**Next**: Implementation in Code mode
-
-## Implementation Checklist
-
-- [ ] Set up Python project structure with `uv`
-  - [ ] Create `pyproject.toml` with project metadata and dependencies
-  - [ ] Create `.python-version` file (e.g., `3.11`)
-  - [ ] Run `uv sync` to initialize project
-- [ ] Implement `file_loader.py` - YAML/JSON/MD parsing
-- [ ] Implement `comparator.py` - Text comparison logic
-- [ ] Implement `validator.py` - Validation mode
-- [ ] Implement `sync_engine.py` - Sync operations
-- [ ] Implement `formatter.py` - Output formatting
-- [ ] Implement `git_helper.py` - Git operations (optional)
-- [ ] Implement `sync_tool.py` - CLI interface
-- [ ] Add unit tests
-- [ ] Add integration tests
-- [ ] Test with real release data
-- [ ] Document edge cases found
-- [ ] Add usage examples to docs
-
-## Contributing
-
-This tool follows these principles:
-
-1. **Simple over clever**: Readable code beats clever tricks
-2. **Functional over OOP**: Pure functions with clear inputs/outputs
-3. **Explicit over implicit**: Clear naming, no magic
-4. **Safe over fast**: Correctness first, optimize later
-
-## Future Enhancements
-
-- [ ] Multi-release batch processing
-- [ ] Automated tests in CI/CD
-- [ ] Pre-commit hook integration
-- [ ] Web UI for visual diff review
-- [ ] History/audit log of sync operations
-- [ ] Integration with GitHub API
-
-## Support
-
-For issues, questions, or suggestions:
-1. Check [ARCHITECTURE.md](ARCHITECTURE.md) for design details
-2. Check [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) for algorithms
-3. Review examples in this README
-4. Open an issue in kubernetes/sig-release
-
-## License
-
-Apache 2.0 - Same as Kubernetes
-
----
-
-**Ready to implement?** Switch to Code mode and let's build this tool! 🚀

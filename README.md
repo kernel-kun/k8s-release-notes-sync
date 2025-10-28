@@ -90,18 +90,18 @@ Check consistency without making changes.
 
 ```bash
 # Validate changes since a commit
-python sync_tool.py validate --since-commit <commit-hash> --release 1.35
+uv run python sync_tool.py validate --since-commit <commit-hash> --release 1.35
 
 # Validate specific PRs
-python sync_tool.py validate --prs 133540,132549 --release 1.35
+uv run python sync_tool.py validate --prs 133540,132549 --release 1.35
 
 # Validate entire release
-python sync_tool.py validate --global --release 1.35
+uv run python sync_tool.py validate --global --release 1.35
 
 # Output formats
-python sync_tool.py validate --global --release 1.35 --output table  # default
-python sync_tool.py validate --global --release 1.35 --output json
-python sync_tool.py validate --global --release 1.35 --output csv
+uv run python sync_tool.py validate --global --release 1.35 --output table  # default
+uv run python sync_tool.py validate --global --release 1.35 --output json
+uv run python sync_tool.py validate --global --release 1.35 --output csv
 ```
 
 **Output Example**:
@@ -128,16 +128,16 @@ Apply changes from map files to JSON and Markdown.
 
 ```bash
 # Sync changes since a commit (interactive)
-python sync_tool.py sync --since-commit <commit-hash> --release 1.35
+uv run python sync_tool.py sync --since-commit <commit-hash> --release 1.35
 
 # Sync specific PRs
-python sync_tool.py sync --prs 133540,132549 --release 1.35
+uv run python sync_tool.py sync --prs 133540,132549 --release 1.35
 
 # Dry run (see what would change)
-python sync_tool.py sync --since-commit HEAD~1 --release 1.35 --dry-run
+uv run python sync_tool.py sync --since-commit HEAD~1 --release 1.35 --dry-run
 
 # Auto-approve all changes (dangerous!)
-python sync_tool.py sync --since-commit HEAD~1 --release 1.35 --auto-yes
+uv run python sync_tool.py sync --since-commit HEAD~1 --release 1.35 --auto-yes
 ```
 
 **Interactive Flow**:
@@ -178,10 +178,10 @@ You've updated map files based on reviewer feedback:
 git diff HEAD~1 releases/release-1.35/release-notes/maps/
 
 # 2. Validate those changes
-python sync_tool.py validate --since-commit HEAD~1 --release 1.35
+uv run python sync_tool.py validate --since-commit HEAD~1 --release 1.35
 
 # 3. Sync the changes
-python sync_tool.py sync --since-commit HEAD~1 --release 1.35
+uv run python sync_tool.py sync --since-commit HEAD~1 --release 1.35
 
 # 4. Review and commit
 git diff
@@ -195,13 +195,13 @@ Before cutting a release, validate everything:
 
 ```bash
 # Check entire release for consistency
-python sync_tool.py validate --global --release 1.35
+uv run python sync_tool.py validate --global --release 1.35
 
 # If issues found, review them
-python sync_tool.py validate --global --release 1.35 --output json > validation.json
+uv run python sync_tool.py validate --global --release 1.35 --output json > validation.json
 
 # Fix issues and sync
-python sync_tool.py sync --global --release 1.35
+uv run python sync_tool.py sync --global --release 1.35
 ```
 
 ### Scenario 3: Fixing a Specific PR
@@ -213,10 +213,10 @@ Fix one specific PR's release notes:
 vim releases/release-1.35/release-notes/maps/pr-133540-map.yaml
 
 # 2. Validate just that PR
-python sync_tool.py validate --prs 133540 --release 1.35
+uv run python sync_tool.py validate --prs 133540 --release 1.35
 
 # 3. Sync just that PR
-python sync_tool.py sync --prs 133540 --release 1.35
+uv run python sync_tool.py sync --prs 133540 --release 1.35
 ```
 
 ## How It Works

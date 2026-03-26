@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Compare PR numbers from release-notes map files, release-notes-draft.json, and session files
+Compare PR numbers from release-notes map files, release-notes-draft.json,
+release-notes-draft.md, and session files.
 
 Usage: python compare_pr_numbers.py <release-version>
 Example: python compare_pr_numbers.py 1.35
@@ -51,6 +52,26 @@ def get_pr_numbers_from_draft_json(json_file):
     return pr_numbers
 
 
+def get_pr_numbers_from_draft_md(md_file):
+    """Extract PR numbers from the release-notes-draft.md file.
+
+    Matches the ([#12345](url)) pattern used in Kubernetes release notes.
+    """
+    pr_numbers = set()
+
+    if not os.path.exists(md_file):
+        print(f"Warning: Markdown file not found: {md_file}")
+        return pr_numbers
+
+    with open(md_file, 'r') as f:
+        content = f.read()
+
+    for match in re.finditer(r'\[#(\d+)\]', content):
+        pr_numbers.add(int(match.group(1)))
+
+    return pr_numbers
+
+
 def get_pr_numbers_from_sessions(sessions_dir):
     """Extract PR numbers from all JSON files in the sessions directory"""
     pr_numbers = set()
@@ -92,130 +113,81 @@ def main():
     maps_dir = os.path.join(base_dir, "maps")
     sessions_dir = os.path.join(base_dir, "sessions")
     json_file = os.path.join(base_dir, "release-notes-draft.json")
-    
+    md_file = os.path.join(base_dir, "release-notes-draft.md")
+
     print(f"🔎 Analyzing release {release_version}")
     print(f"Maps directory: {maps_dir}")
     print(f"Sessions directory: {sessions_dir}")
     print(f"JSON file: {json_file}")
+    print(f"Markdown file: {md_file}")
     print("=" * 80)
-    
+
     # Extract PR numbers from all sources
     pr_from_maps = get_pr_numbers_from_maps(maps_dir)
     pr_from_draft_json = get_pr_numbers_from_draft_json(json_file)
+    pr_from_draft_md = get_pr_numbers_from_draft_md(md_file)
     pr_from_sessions = get_pr_numbers_from_sessions(sessions_dir)
-    
-    # Calculate set differences and intersections
-    all_prs = pr_from_maps | pr_from_draft_json | pr_from_sessions
-    
-    # Two-way comparisons
-    maps_not_in_json = pr_from_maps - pr_from_draft_json
-    json_not_in_maps = pr_from_draft_json - pr_from_maps
-    
-    sessions_not_in_json = pr_from_sessions - pr_from_draft_json
-    json_not_in_sessions = pr_from_draft_json - pr_from_sessions
-    
-    sessions_not_in_maps = pr_from_sessions - pr_from_maps
-    maps_not_in_sessions = pr_from_maps - pr_from_sessions
-    
-    # Three-way: only in one source
-    only_in_maps = pr_from_maps - pr_from_draft_json - pr_from_sessions
-    only_in_json = pr_from_draft_json - pr_from_maps - pr_from_sessions
-    only_in_sessions = pr_from_sessions - pr_from_maps - pr_from_draft_json
-    
-    # In all three
-    in_all_three = pr_from_maps & pr_from_draft_json & pr_from_sessions
-    
+
+    sources = {
+        "📁 MAP FILES": pr_from_maps,
+        "📄 DRAFT JSON": pr_from_draft_json,
+        "📝 DRAFT MD": pr_from_draft_md,
+        "📋 SESSION FILES": pr_from_sessions,
+    }
+    # Calculate totals
+    all_prs = pr_from_maps | pr_from_draft_json | pr_from_draft_md | pr_from_sessions
+    in_all = pr_from_maps & pr_from_draft_json & pr_from_draft_md & pr_from_sessions
+
     # Display results
     print(f"\n📊 SUMMARY:")
-    print(f"  Total PRs in map files: {len(pr_from_maps)}")
-    print(f"  Total PRs in draft JSON: {len(pr_from_draft_json)}")
-    print(f"  Total PRs in session files: {len(pr_from_sessions)}")
+    for name, prs in sources.items():
+        print(f"  Total PRs in {name}: {len(prs)}")
     print(f"  Total unique PRs (all sources): {len(all_prs)}")
-    print(f"  PRs in all three sources: {len(in_all_three)}")
+    print(f"  PRs in all four sources: {len(in_all)}")
     print()
-    
-    # Map files vs Draft JSON
+
+    # All pairwise comparisons
+    for i, (name_a, prs_a) in enumerate(sources.items()):
+        for name_b, prs_b in list(sources.items())[i + 1:]:
+            print("=" * 80)
+            print(f"{name_a} vs {name_b}:")
+            print("=" * 80)
+
+            a_not_b = prs_a - prs_b
+            b_not_a = prs_b - prs_a
+
+            print(f"\n🔍 PRs in {name_a} but NOT in {name_b} ({len(a_not_b)}):")
+            if a_not_b:
+                for pr in sorted(a_not_b):
+                    print(f"  - PR #{pr}")
+            else:
+                print(f"  ✅ None")
+
+            print(f"\n🔍 PRs in {name_b} but NOT in {name_a} ({len(b_not_a)}):")
+            if b_not_a:
+                for pr in sorted(b_not_a):
+                    print(f"  - PR #{pr}")
+            else:
+                print(f"  ✅ None")
+            print()
+
+    # Unique to each source
     print("=" * 80)
-    print(f"📁 MAP FILES vs 📄 DRAFT JSON:")
-    print("=" * 80)
-    
-    print(f"\n🔍 PRs in MAP FILES but NOT in DRAFT JSON ({len(maps_not_in_json)}):")
-    if maps_not_in_json:
-        for pr in sorted(maps_not_in_json):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None - All map file PRs are in draft JSON")
-    
-    print(f"\n🔍 PRs in DRAFT JSON but NOT in MAP FILES ({len(json_not_in_maps)}):")
-    if json_not_in_maps:
-        for pr in sorted(json_not_in_maps):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None - All draft JSON PRs have map files")
-    
-    # Session files vs Draft JSON
-    print("\n" + "=" * 80)
-    print(f"📝 SESSION FILES vs 📄 DRAFT JSON:")
-    print("=" * 80)
-    
-    print(f"\n🔍 PRs in SESSION FILES but NOT in DRAFT JSON ({len(sessions_not_in_json)}):")
-    if sessions_not_in_json:
-        for pr in sorted(sessions_not_in_json):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None - All session file PRs are in draft JSON")
-    
-    print(f"\n🔍 PRs in DRAFT JSON but NOT in SESSION FILES ({len(json_not_in_sessions)}):")
-    if json_not_in_sessions:
-        for pr in sorted(json_not_in_sessions):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None - All draft JSON PRs are in session files")
-    
-    # Map files vs Session files
-    print("\n" + "=" * 80)
-    print(f"📁 MAP FILES vs 📝 SESSION FILES:")
-    print("=" * 80)
-    
-    print(f"\n🔍 PRs in MAP FILES but NOT in SESSION FILES ({len(maps_not_in_sessions)}):")
-    if maps_not_in_sessions:
-        for pr in sorted(maps_not_in_sessions):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None - All map file PRs are in session files")
-    
-    print(f"\n🔍 PRs in SESSION FILES but NOT in MAP FILES ({len(sessions_not_in_maps)}):")
-    if sessions_not_in_maps:
-        for pr in sorted(sessions_not_in_maps):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None - All session file PRs have map files")
-    
-    # Three-way unique PRs
-    print("\n" + "=" * 80)
     print(f"🎯 UNIQUE TO EACH SOURCE:")
     print("=" * 80)
-    
-    print(f"\n📁 Only in MAP FILES ({len(only_in_maps)}):")
-    if only_in_maps:
-        for pr in sorted(only_in_maps):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None")
-    
-    print(f"\n📄 Only in DRAFT JSON ({len(only_in_json)}):")
-    if only_in_json:
-        for pr in sorted(only_in_json):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None")
-    
-    print(f"\n📝 Only in SESSION FILES ({len(only_in_sessions)}):")
-    if only_in_sessions:
-        for pr in sorted(only_in_sessions):
-            print(f"  - PR #{pr}")
-    else:
-        print("  ✅ None")
+
+    for name, prs in sources.items():
+        others = set()
+        for other_name, other_prs in sources.items():
+            if other_name != name:
+                others |= other_prs
+        only = prs - others
+        print(f"\n{name} only ({len(only)}):")
+        if only:
+            for pr in sorted(only):
+                print(f"  - PR #{pr}")
+        else:
+            print("  ✅ None")
 
 
 if __name__ == "__main__":

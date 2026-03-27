@@ -229,6 +229,13 @@ def strip_bullet(text: str) -> str:
     return t
 
 
+def check_missing_sig(entry_text: str) -> bool:
+    """Return True if the entry is missing a trailing [SIG ...] suffix."""
+    stripped = entry_text.rstrip()
+    sig_pattern = re.compile(r"\[SIG\s+[^\]]+\]\s*$")
+    return not sig_pattern.search(stripped)
+
+
 def check_missing_period(entry_text: str) -> bool:
     """Return True if the entry is missing a trailing period before the PR link."""
     # The text before the PR link should end with a period, or the whole line
@@ -318,6 +325,15 @@ def check_missing_backticks(entry_text: str) -> list[str]:
             before = content[:start]
             if before.count("`") % 2 == 0:  # even = not inside backticks
                 issues.append(f"Metric/identifier `{term}` may need backticks")
+
+    # CLI flags (--foo, --foo-bar) that aren't in backticks
+    flag_pattern = re.compile(r"(?<!`)--[a-zA-Z][a-zA-Z0-9-]*(?!`)")
+    for match in flag_pattern.finditer(content):
+        flag = match.group(0)
+        start = match.start()
+        before = content[:start]
+        if before.count("`") % 2 == 0:  # not inside backticks
+            issues.append(f"Flag `{flag}` should be wrapped in backticks")
 
     # Single-quoted terms that should be backticked
     single_quote_pattern = re.compile(r"'([^']+)'")
@@ -446,8 +462,8 @@ def check_version_format(entry_text: str) -> list[str]:
     # so we need a dedicated pattern for the `1.36.0` -> `v1.36.0` case.
     backticked_ver_pattern = re.compile(
         r"`"
-        r"(\d+\.\d+(?:\.\d+)?)"                    # major.minor[.patch] without v
-        r"((?:-(?:alpha|beta|rc)\.\d+)?)"            # optional pre-release
+        r"(\d+\.\d+(?:\.\d+)?)"  # major.minor[.patch] without v
+        r"((?:-(?:alpha|beta|rc)\.\d+)?)"  # optional pre-release
         r"`"
     )
     for match in backticked_ver_pattern.finditer(content):
@@ -580,6 +596,13 @@ def generate_report(
                 ):
                     reordered_prs.append((p, section))
 
+    # Guideline checks: missing SIG runs on ALL PRs in new version
+    missing_sigs = []
+    for pr in sorted(new_prs):
+        text = new_entries[pr]
+        if check_missing_sig(text):
+            missing_sigs.append(pr)
+
     # Guideline checks on new entries
     missing_periods = []
     present_tense_issues = []
@@ -704,11 +727,29 @@ def generate_report(
     lines.append(f"")
 
     # Part 6: Guideline violations
-    lines.append(f"## 6. Guideline Violations in Newly Added PRs")
+    lines.append(f"## 6. Guideline Violations")
     lines.append(f"")
 
-    # 6.1 Missing periods
-    lines.append(f"### 6.1 Missing Trailing Period ({len(missing_periods)} PRs)")
+    # 6.1 Missing SIG tags (checks ALL PRs in new version)
+    lines.append(f"### 6.1 Missing `[SIG ...]` Suffix ({len(missing_sigs)} PRs)")
+    lines.append(f"")
+    if missing_sigs:
+        lines.append(f"| # | PR | Description |")
+        lines.append(f"|---|-----|-------------|")
+        for i, pr in enumerate(missing_sigs, 1):
+            desc_text = strip_bullet(new_entries[pr]).split("\n")[0]
+            desc_match = re.match(r"^(.+?)\s*\(\[#\d+\]", desc_text)
+            desc = desc_match.group(1) if desc_match else desc_text[:80]
+            if len(desc) > 80:
+                desc = desc[:77] + "..."
+            pr_link = f"[#{pr}](https://github.com/kubernetes/kubernetes/pull/{pr})"
+            lines.append(f"| {i} | {pr_link} | {desc} |")
+    else:
+        lines.append(f"None.")
+    lines.append(f"")
+
+    # 6.2 Missing periods (new PRs only)
+    lines.append(f"### 6.2 Missing Trailing Period ({len(missing_periods)} PRs)")
     lines.append(f"")
     if missing_periods:
         for pr in missing_periods:
@@ -718,9 +759,9 @@ def generate_report(
         lines.append(f"None.")
     lines.append(f"")
 
-    # 6.2 Present tense
+    # 6.3 Present tense
     lines.append(
-        f"### 6.2 Present Tense Instead of Past Tense ({len(present_tense_issues)} PRs)"
+        f"### 6.3 Present Tense Instead of Past Tense ({len(present_tense_issues)} PRs)"
     )
     lines.append(f"")
     if present_tense_issues:
@@ -732,8 +773,8 @@ def generate_report(
         lines.append(f"None.")
     lines.append(f"")
 
-    # 6.3 Missing backticks
-    lines.append(f"### 6.3 Missing Backticks ({len(backtick_issues)} PRs)")
+    # 6.4 Missing backticks
+    lines.append(f"### 6.4 Missing Backticks ({len(backtick_issues)} PRs)")
     lines.append(f"")
     if backtick_issues:
         for pr, issues in backtick_issues:
@@ -743,8 +784,8 @@ def generate_report(
         lines.append(f"None.")
     lines.append(f"")
 
-    # 6.4 Component name issues
-    lines.append(f"### 6.4 Component Name Issues ({len(component_issues)} PRs)")
+    # 6.5 Component name issues
+    lines.append(f"### 6.5 Component Name Issues ({len(component_issues)} PRs)")
     lines.append(f"")
     if component_issues:
         for pr, issues in component_issues:
@@ -754,8 +795,8 @@ def generate_report(
         lines.append(f"None.")
     lines.append(f"")
 
-    # 6.5 Version format issues
-    lines.append(f"### 6.5 Version Format Issues ({len(version_issues)} PRs)")
+    # 6.6 Version format issues
+    lines.append(f"### 6.6 Version Format Issues ({len(version_issues)} PRs)")
     lines.append(f"")
     if version_issues:
         for pr, issues in version_issues:
@@ -765,8 +806,8 @@ def generate_report(
         lines.append(f"None.")
     lines.append(f"")
 
-    # 6.6 Contradictory notes
-    lines.append(f"### 6.6 Contradictory/Duplicate Notes ({len(contradictions)} sets)")
+    # 6.7 Contradictory notes
+    lines.append(f"### 6.7 Contradictory/Duplicate Notes ({len(contradictions)} sets)")
     lines.append(f"")
     if contradictions:
         for pr1, pr2, reason in contradictions:

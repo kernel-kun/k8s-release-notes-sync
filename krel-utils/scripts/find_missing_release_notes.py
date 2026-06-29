@@ -31,9 +31,7 @@ Usage:
     ./show_release_notes.py v1.37.0-alpha.1 v1.37.0-alpha.2
     ./show_release_notes.py --repo-dir ~/k8s/kubernetes v1.37.0-alpha.1 HEAD
     ./show_release_notes.py -o json v1.37.0-alpha.1 v1.37.0-alpha.2 > notes.json
-    ./show_release_notes.py --live-dir \
-        ~/kubernetes-oss/sig-release/releases/release-1.37/release-notes \
-        v1.37.0-alpha.1 v1.37.0-alpha.2
+    ./show_release_notes.py --live-dir ~/kubernetes-oss/sig-release/releases/release-1.37/release-notes v1.37.0-alpha.1 v1.37.0-alpha.2
     ./show_release_notes.py --self-test
 """
 

@@ -54,8 +54,8 @@ runs start immediately. Pass `--help` to any script for full options.
 
 | Script | Purpose | Deps |
 | --- | --- | --- |
-| `show_release_notes.py` | Lists the \`\`\`release-note \`\`\` block of every PR merged between two git refs, flagging ones krel may have missed. | `rich` |
-| `review_release_notes_diff.py` | Diffs two versions of a `release-notes-draft.md` and reports removed/modified/reordered/added PRs plus style violations. | stdlib |
+| `find_missing_release_notes.py` | Lists the \`\`\`release-note \`\`\` block of every PR merged between two git refs, flagging ones krel may have missed. | `rich` |
+| `flag_release_notes_common_issues.py` | Diffs two versions of a `release-notes-draft.md` and reports removed/modified/reordered/added PRs plus style violations. | stdlib |
 | `sync_map_fields.py` | Syncs `sigs`/`kinds`/`areas` from `release-notes-draft.json` back into the per-PR map YAML files. | `ruamel.yaml` |
 | `sync_release_note_text.py` | Syncs changed `.text` fields from `release-notes-draft.json` between two git refs back to map files. | `pyyaml` |
 | `compare_pr_numbers.py` | Cross-checks PR numbers across map files, the draft JSON/MD, and session files for a release. | stdlib |
@@ -65,12 +65,12 @@ runs start immediately. Pass `--help` to any script for full options.
 
 ```bash
 # Find PRs with a release note that krel didn't pick up, for a tag range:
-./show_release_notes.py --live-dir \
+./find_missing_release_notes.py --live-dir \
     ../../sig-release/releases/release-1.37/release-notes \
     v1.37.0-alpha.1 v1.37.0-alpha.2
 
 # Review what changed between successive draft branches:
-./review_release_notes_diff.py --repo-dir /path/to/sig-release \
+./flag_release_notes_common_issues.py --repo-dir /path/to/sig-release \
     --old-ref release-notes-draft-v1.37.0-alpha.1 \
     --new-ref release-notes-draft-v1.37.0-alpha.2
 

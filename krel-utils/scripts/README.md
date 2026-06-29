@@ -54,7 +54,7 @@ runs start immediately. Pass `--help` to any script for full options.
 
 | Script | Purpose | Deps |
 | --- | --- | --- |
-| `show_release_notes.py` | Lists the ` ```release-note ``` block of every PR merged between two git refs, flagging ones krel may have missed. | `rich` |
+| `show_release_notes.py` | Lists the \`\`\`release-note \`\`\` block of every PR merged between two git refs, flagging ones krel may have missed. | `rich` |
 | `review_release_notes_diff.py` | Diffs two versions of a `release-notes-draft.md` and reports removed/modified/reordered/added PRs plus style violations. | stdlib |
 | `sync_map_fields.py` | Syncs `sigs`/`kinds`/`areas` from `release-notes-draft.json` back into the per-PR map YAML files. | `ruamel.yaml` |
 | `sync_release_note_text.py` | Syncs changed `.text` fields from `release-notes-draft.json` between two git refs back to map files. | `pyyaml` |

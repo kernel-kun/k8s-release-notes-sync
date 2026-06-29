@@ -166,6 +166,11 @@ def main():
         help="Report changes without writing files",
     )
     parser.add_argument(
+        "--clear-pr-body",
+        action="store_true",
+        help='Also set the top-level pr_body field to "" in each map file',
+    )
+    parser.add_argument(
         "--repo-root",
         type=Path,
         default=None,
@@ -227,8 +232,9 @@ def main():
 
         rn = map_data.get("releasenote", {})
         diff = compute_field_diff(rn, json_entry)
+        clear_body = args.clear_pr_body and map_data.get("pr_body") != ""
 
-        if not diff:
+        if not diff and not clear_body:
             unchanged += 1
             continue
 
@@ -236,9 +242,13 @@ def main():
         print(f"📝 PR #{pr_number} ({map_path.name}):")
         for field, field_diff in diff.items():
             print(format_diff(field, field_diff))
+        if clear_body:
+            print('  pr_body: -> ""')
 
         if not args.dry_run:
             apply_changes(map_data, json_entry)
+            if clear_body:
+                map_data["pr_body"] = ""
             _dump_yaml(map_data, map_path)
 
         updated += 1

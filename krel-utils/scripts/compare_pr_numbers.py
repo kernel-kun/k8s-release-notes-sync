@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# ///
 """
 Compare PR numbers from release-notes map files, release-notes-draft.json,
 release-notes-draft.md, and session files.

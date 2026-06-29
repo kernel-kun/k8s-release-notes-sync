@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["ruamel.yaml>=0.18"]
+# ///
 """
 Sync sigs, kinds, and areas fields from release-notes-draft.json back into
 individual PR map YAML files.

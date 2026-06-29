@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.0/.schema/devbox.schema.json",
+  "packages": [
+    "uv@latest",
+    "git@latest",
+    "gh@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'release-notes scripts ready. Run any ./<script>.py directly (uv resolves deps on first run). See README.md.'"
+    ],
+    "scripts": {
+      "warmup": [
+        "uv run --script show_release_notes.py --self-test",
+        "uv run --script sync_map_fields.py --help || true",
+        "uv run --script sync_release_note_text.py --help || true"
+      ]
+    }
+  }
+}

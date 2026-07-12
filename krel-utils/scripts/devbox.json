@@ -11,9 +11,8 @@
     ],
     "scripts": {
       "warmup": [
-        "uv run --script show_release_notes.py --self-test",
-        "uv run --script sync_map_fields.py --help || true",
-        "uv run --script sync_release_note_text.py --help || true"
+        "uv run --script find_missing_release_notes.py --self-test",
+        "uv run --script sync_map_fields.py --help || true"
       ]
     }
   }

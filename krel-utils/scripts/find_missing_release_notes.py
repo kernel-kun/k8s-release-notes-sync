@@ -89,21 +89,54 @@ def pr_from_message(msg):
     return None
 
 
+# How deep to follow branch-integration merges (see _prs_first_parent). One
+# level covers "merge master into release-1.X"; two leaves room for a master-side
+# merge that itself carries no PR number.
+MAX_MERGE_DEPTH = 2
+
+
 def prs_between(repo_dir, base, head):
-    """PR numbers from first-parent commits in merge-base(base,head)..head, oldest first.
+    """PR numbers merged in merge-base(base,head)..head, oldest first.
 
     Mirrors krel's listLeftParentCommits (pkg/notes/notes.go): it stops at the
     merge base of the two refs and pulls a PR number from *every* commit on the
     first-parent chain -- squash merges, cherry-picks, and reverts included --
-    not just merge commits. Bodies (%B) are needed so the multi-line revert and
-    squash patterns match. Records are split on \\x1e so embedded newlines don't.
+    not just merge commits.
     """
     stop = git(repo_dir, "merge-base", base, head).strip()
+    return list(dict.fromkeys(_prs_first_parent(repo_dir, stop, head)))
+
+
+def _prs_first_parent(repo_dir, stop, head, depth=0):
+    """PR numbers along stop..head's first-parent chain, descending into merges.
+
+    A plain first-parent walk is blind to PRs brought in by a branch-integration
+    merge -- during code freeze the release branch absorbs master via "Merge
+    remote-tracking branch 'origin/master' into release-1.X", so every PR merged
+    to master in that window sits on the *second* parent and never appears on the
+    release branch's first-parent chain. That is why a range like
+    v1.37.0-rc.0..v1.37.0-rc.1 looks empty. So whenever a first-parent merge
+    commit yields no PR number of its own, we recurse into its second-parent side
+    (p1..p2, first-parent again) and collect the PR merges it pulled in.
+
+    Bodies (%B) are needed so the multi-line revert and squash patterns match;
+    each record is prefixed with "<sha> <parents...>" and records are split on
+    \\x1e so embedded newlines don't.
+    """
     out = git(repo_dir, "log", "--first-parent", "--reverse",
-              "--format=%x1e%B", f"{stop}..{head}")
-    prs = [pr for rec in out.split("\x1e")
-           if rec.strip() and (pr := pr_from_message(rec)) is not None]
-    return list(dict.fromkeys(prs))  # de-dupe, preserve order
+              "--format=%x1e%H %P%n%B", f"{stop}..{head}")
+    prs = []
+    for rec in out.split("\x1e"):
+        if not rec.strip():
+            continue
+        header, _, msg = rec.partition("\n")
+        if (pr := pr_from_message(msg)) is not None:
+            prs.append(pr)
+            continue
+        shas = header.split()  # sha, then one entry per parent
+        if len(shas) > 2 and depth < MAX_MERGE_DEPTH:  # a merge with no PR number
+            prs.extend(_prs_first_parent(repo_dir, shas[1], shas[2], depth + 1))
+    return prs
 
 
 def extract_release_note(body):
